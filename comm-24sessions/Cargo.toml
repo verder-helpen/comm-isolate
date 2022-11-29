@@ -1,0 +1,23 @@
+[package]
+name = "verder-helpen-24sessions"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+verder-helpen-sentry = { git = "https://github.com/verder-helpen/verder-helpen-sentry.git", optional = true }
+verder-helpen-jwt = { git = "https://github.com/verder-helpen/verder-helpen-jwt.git" }
+verder-helpen-proto = { git = "https://github.com/verder-helpen/verder-helpen-proto.git" }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+serde = "1.0.147"
+serde_json = "1.0.87"
+reqwest = { version = "0.11.12", features = ["json"] }
+
+[dependencies.verder-helpen-comm-common]
+git = "https://github.com/verder-helpen/comm-common.git"
+rev = "cea0027a198bf33348886cb063ec87f8ddbe7ab1"
+features = ["auth_during_comm", "session_db"]
+
+[features]
+sentry = ["dep:verder-helpen-sentry"]

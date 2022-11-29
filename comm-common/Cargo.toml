@@ -1,0 +1,37 @@
+[package]
+name = "verder-helpen-comm-common"
+version = "0.1.0"
+edition = "2018"
+
+[features]
+default = ["auth_during_comm", "platform_token", "session_db"]
+auth_during_comm = ["platform_token"]
+platform_token = []
+session_db = ["platform_token"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+verder-helpen-jwt = { git = "https://github.com/verder-helpen/verder-helpen-jwt.git" }
+verder-helpen-proto = { git = "https://github.com/verder-helpen/verder-helpen-proto.git" }
+josekit = "0.8.1"
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+rocket_oauth2 = "0.5.0-rc.1"
+rocket_sync_db_pools = { version = "0.1.0-rc.2", features = ["postgres_pool"] }
+serde = "1.0.147"
+serde_json = "1.0.87"
+serde_yaml = "0.9.14"
+thiserror = "1.0.37"
+reqwest = { version = "0.11.12", features = ["json"] }
+strum = "0.24.1"
+strum_macros = "0.24.3"
+rand = "0.8.5"
+tera = "1.17.1"
+lazy_static = "1.4.0"
+unic-langid = "0.9.1"
+accept-language = "2.0.0"
+
+[dev-dependencies]
+serial_test = "0.9.0"
+tokio-test = "0.4.2"
+figment = { version = "0.10.8", features = ["env", "toml", "json"] }
