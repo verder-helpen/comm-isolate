@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "comm-common",
+    "comm-plugin",
+]

@@ -274,7 +274,7 @@ async fn main() -> Result<(), rocket::Error> {
     if let Some(dsn) = config.sentry_dsn() {
         base = base.attach(verder_helpen_sentry::SentryFairing::new(
             dsn,
-            "comm-24sessions",
+            "comm-isolate",
         ));
     }
 
