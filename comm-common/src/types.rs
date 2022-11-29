@@ -45,36 +45,21 @@ pub mod platform_token {
     use core::str;
     use josekit::{jws::JwsVerifier, jwt::JwtPayloadValidator};
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
-    use strum_macros::{Display, EnumString};
-
-    #[derive(Deserialize, Debug, Serialize, Display, Clone, EnumString)]
-    #[strum(serialize_all = "snake_case")]
-    pub enum SessionDomain {
-        #[serde(rename = "user")]
-        User,
-        #[serde(rename = "guest")]
-        Guest,
-    }
 
     #[derive(Deserialize, Debug)]
     pub struct HostToken {
-        pub id: String,
-        pub domain: SessionDomain,
         #[serde(rename = "roomId")]
         pub room_id: String,
-        pub instance: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, Clone)]
     pub struct GuestToken {
         pub id: String,
-        pub domain: SessionDomain,
         #[serde(rename = "redirectUrl")]
         pub redirect_url: String,
         pub name: String,
         #[serde(rename = "roomId")]
         pub room_id: String,
-        pub instance: String,
         pub purpose: String,
     }
 
@@ -139,7 +124,6 @@ mod tests {
     #[cfg(feature = "platform_token")]
     fn from_platform_jwt_test() {
         use super::platform_token::{GuestToken, HostToken};
-        use crate::types::SessionDomain;
 
         let guest_validator = HmacJwsAlgorithm::Hs256
             .verifier_from_bytes(GUEST_SECRET)
@@ -150,11 +134,9 @@ mod tests {
 
         let GuestToken {
             id,
-            domain,
             redirect_url,
             name,
             room_id,
-            instance,
             purpose: _,
         } = super::platform_token::from_platform_jwt_inner::<GuestToken>(
             GUEST_TOKEN,
@@ -164,11 +146,9 @@ mod tests {
         .expect("Error verifying guest token");
 
         assert_eq!(id, "101-1010-1010-101");
-        assert!(matches!(domain, SessionDomain::Guest));
         assert_eq!(redirect_url, "https://tweedegolf.nl");
         assert_eq!(name, "Unknown");
         assert_eq!(room_id, "16");
-        assert_eq!(instance, "tweedegolf.nl");
 
         assert!(
             super::platform_token::from_platform_jwt_inner::<GuestToken>(
@@ -179,22 +159,14 @@ mod tests {
             .is_err()
         );
 
-        let HostToken {
-            id,
-            domain,
-            room_id,
-            instance,
-        } = super::platform_token::from_platform_jwt_inner::<HostToken>(
+        let HostToken { room_id } = super::platform_token::from_platform_jwt_inner::<HostToken>(
             HOST_TOKEN,
             &host_validator,
             std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1620000000),
         )
         .expect("Error verifying host token");
 
-        assert_eq!(id, "1");
-        assert!(matches!(domain, SessionDomain::User));
         assert_eq!(room_id, "16");
-        assert_eq!(instance, "tweedegolf.nl");
 
         assert!(super::platform_token::from_platform_jwt_inner::<HostToken>(
             HOST_TOKEN,
