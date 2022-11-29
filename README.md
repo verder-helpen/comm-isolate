@@ -1,6 +1,6 @@
 # Isolated communication plugin for Verder Helpen
 
-This respository is a part of the Verder Helpen Platform. It contains a communication plugin useable for
+This repository is a part of the Verder Helpen Platform. It contains a communication plugin useable for
 communication platforms that only want to display a users attribute to helpdesk employees. This is
 useful for minimizing implementation complexity and regulatory requirements on the communication platform
 itself.
