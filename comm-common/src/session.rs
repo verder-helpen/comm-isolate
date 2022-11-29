@@ -1,10 +1,6 @@
-use std::str::FromStr;
 use std::time::Duration;
 
-use crate::{
-    error::Error,
-    types::{GuestToken, SessionDomain},
-};
+use crate::{error::Error, types::GuestToken};
 use rocket::tokio;
 use rocket_sync_db_pools::{database, postgres};
 use serde::{Deserialize, Serialize};
@@ -42,23 +38,19 @@ impl Session {
                     "INSERT INTO session (
                 session_id,
                 room_id,
-                domain,
                 redirect_url,
                 purpose,
                 name,
-                instance,
                 attr_id,
                 auth_result,
                 last_activity
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now());",
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, now());",
                     &[
                         &this.guest_token.id,
                         &this.guest_token.room_id,
-                        &this.guest_token.domain.to_string(),
                         &this.guest_token.redirect_url,
                         &this.guest_token.purpose,
                         &this.guest_token.name,
-                        &this.guest_token.instance,
                         &this.attr_id,
                         &this.auth_result,
                     ],
@@ -108,21 +100,17 @@ impl Session {
                     "UPDATE session SET attr_id=$1 WHERE
                 session_id = $2 AND
                 room_id = $3 AND
-                domain = $4 AND
-                redirect_url = $5 AND
-                purpose = $6 AND
-                name = $7 AND
-                instance = $8 AND
+                redirect_url = $4 AND
+                purpose = $5 AND
+                name = $6 AND
                 auth_result IS NULL",
                     &[
                         &new_attr_id,
                         &token.id,
                         &token.room_id,
-                        &token.domain.to_string(),
                         &token.redirect_url,
                         &token.purpose,
                         &token.name,
-                        &token.instance,
                     ],
                 )
             })
@@ -168,11 +156,9 @@ impl Session {
                     RETURNING
                         session_id,
                         room_id,
-                        domain,
                         redirect_url,
                         purpose,
                         name,
-                        instance,
                         attr_id,
                         auth_result
                     ",
@@ -183,14 +169,11 @@ impl Session {
                 }
                 rows.into_iter()
                     .map(|r| -> Result<_, Error> {
-                        let domain = SessionDomain::from_str(r.get("domain"))?;
                         let guest_token = GuestToken {
                             id: r.get("session_id"),
                             room_id: r.get("room_id"),
-                            domain,
                             redirect_url: r.get("redirect_url"),
                             name: r.get("name"),
-                            instance: r.get("instance"),
                             purpose: r.get("purpose"),
                         };
                         Ok(Session {
@@ -282,11 +265,9 @@ session = {{ url = "{}" }}
         let guest_token = GuestToken {
             purpose: "test".to_owned(),
             id: id.unwrap_or_else(|| random_string(32)),
-            domain: crate::types::SessionDomain::Guest,
             redirect_url: "verderhelpen.nl".to_owned(),
             name: "Test Verder Helpen".to_owned(),
             room_id: room_id.unwrap_or_else(|| random_string(32)),
-            instance: "verderhelpen.nl".to_owned(),
         };
 
         Session {
@@ -302,15 +283,13 @@ session = {{ url = "{}" }}
                 "INSERT INTO session (
                 session_id,
                 room_id,
-                domain,
                 redirect_url,
                 purpose,
                 name,
-                instance,
                 attr_id,
                 auth_result,
                 last_activity
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now() - INTERVAL '{}');",
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, now() - INTERVAL '{}');",
                 age
             );
 
@@ -319,11 +298,9 @@ session = {{ url = "{}" }}
                 &[
                     &s.guest_token.id,
                     &s.guest_token.room_id,
-                    &s.guest_token.domain.to_string(),
                     &s.guest_token.redirect_url,
                     &s.guest_token.purpose,
                     &s.guest_token.name,
-                    &s.guest_token.instance,
                     &s.attr_id,
                     &s.auth_result,
                 ],
