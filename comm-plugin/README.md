@@ -1,7 +1,9 @@
 # 24sessions communication plugin for Verder Helpen
 
-This respository is a part of the Verder Helpen Platform. It contains a communication plugin used to hook up the
-[24sessions](https://www.24sessions.com/) video conferencing software to the Verder Helpen infrastructure.
+This respository is a part of the Verder Helpen Platform. It contains a communication plugin useable for
+communication platforms that only want to display a users attribute to helpdesk employees. This is
+useful for minimizing implementation complexity and regulatory requirements on the communication platform
+itself.
 
 This implementation is intended as a reference for other video conferencing plugins. It aims to keep the
 video conferencing software as agnostic as possible to Verder Helpen, by implementing only the minimally required interaction.
