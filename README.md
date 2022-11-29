@@ -1,4 +1,4 @@
-# 24sessions communication plugin for Verder Helpen
+# Isolated communication plugin for Verder Helpen
 
 This respository is a part of the Verder Helpen Platform. It contains a communication plugin useable for
 communication platforms that only want to display a users attribute to helpdesk employees. This is
