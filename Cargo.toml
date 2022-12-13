@@ -3,4 +3,5 @@
 members = [
     "comm-common",
     "comm-plugin",
+    "rocket_oauth2",
 ]

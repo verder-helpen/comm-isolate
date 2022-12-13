@@ -1,0 +1,20 @@
+[default.oauth.github]
+provider = "GitHub"
+client_id = "<client_id>"
+client_secret = "<client_secret>"
+
+# redirect_uri is optional for this library. If left out, it must still be set
+# correctly on the provider's configuration page for the OAuth2 application.
+#redirect_uri = "http://localhost:8000/auth/github"
+
+[default.oauth.google]
+provider = "Google"
+client_id = "<client_id>"
+client_secret = "<client_secret>"
+redirect_uri = "http://localhost:8000/auth/google"
+
+[default.oauth.microsoft]
+provider = "Microsoft"
+client_id = "<client_id>"
+client_secret = "<client_secret>"
+redirect_uri = "http://localhost:8000/auth/microsoft"

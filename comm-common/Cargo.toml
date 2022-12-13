@@ -16,7 +16,7 @@ verder-helpen-jwt = { git = "https://github.com/verder-helpen/verder-helpen-jwt.
 verder-helpen-proto = { git = "https://github.com/verder-helpen/verder-helpen-proto.git" }
 josekit = "0.8.1"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
-rocket_oauth2 = "0.5.0-rc.1"
+rocket_oauth2 = { path = "../rocket_oauth2" }
 rocket_sync_db_pools = { version = "0.1.0-rc.2", features = ["postgres_pool"] }
 serde = "1.0.147"
 serde_json = "1.0.87"
