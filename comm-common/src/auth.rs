@@ -1,4 +1,3 @@
-use core::convert::Infallible;
 use std::{convert::TryFrom, str::FromStr};
 
 use crate::error::Error;
@@ -51,10 +50,14 @@ impl AuthProvider {
         }
     }
 
-    pub async fn check_token(&self, token: TokenCookie) -> Result<bool, Error> {
+    pub async fn check_token(
+        &self,
+        token: &TokenCookie,
+        source_ip: SourceIP<'_>,
+    ) -> Result<bool, Error> {
         match self {
-            AuthProvider::Google => check_token_google(token).await,
-            AuthProvider::Microsoft => check_token_microsoft(token).await,
+            AuthProvider::Google => check_token_google(token, source_ip).await,
+            AuthProvider::Microsoft => check_token_microsoft(token, source_ip).await,
         }
     }
 }
@@ -67,13 +70,59 @@ impl TryFrom<String> for AuthProvider {
     }
 }
 
-pub struct TokenCookie(String);
+#[derive(Debug, Copy, Clone)]
+pub struct SourceIP<'r>(&'r str);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for SourceIP<'r> {
+    type Error = Error;
+
+    async fn from_request(request: &'r Request<'_>) -> request::Outcome<SourceIP<'r>, Error> {
+        let config = request.rocket().state::<Config>().unwrap(); // if we don't have a config, panic
+
+        if let Some(header_name) = config.host_ip_header() {
+            match request
+                .headers()
+                .get_one(header_name)
+                .and_then(|v| v.split(',').rev().nth(1))
+            {
+                Some(v) => Outcome::Success(SourceIP(v)),
+                None => {
+                    Outcome::Failure((Status::BadRequest, Error::BadRequest("missing ip header")))
+                }
+            }
+        } else {
+            Outcome::Success(SourceIP(""))
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TokenCookie {
+    token: String,
+    ip: String,
+}
+
+impl TokenCookie {
+    fn new<T>(token: TokenResponse<T>, ip: SourceIP) -> Self {
+        TokenCookie {
+            token: token.access_token().to_owned(),
+            ip: ip.0.to_owned(),
+        }
+    }
+
+    // To string is not intended for display purposes.
+    #[allow(clippy::inherent_to_string)]
+    fn to_string(&self) -> String {
+        serde_json::to_string(self).unwrap() // cant fail
+    }
+}
 
 impl FromStr for TokenCookie {
-    type Err = Infallible;
+    type Err = serde_json::Error;
 
     fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
-        Ok(Self(s.to_owned()))
+        serde_json::from_str(s)
     }
 }
 
@@ -92,11 +141,22 @@ impl<'r> FromRequest<'r> for Authorized {
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Authorized, Error> {
         let config = request.rocket().state::<Config>().unwrap(); // if we don't have a config, panic
 
+        let source_ip = match SourceIP::from_request(request).await {
+            Outcome::Success(v) => v,
+            Outcome::Failure(v) => return Outcome::Failure(v),
+            Outcome::Forward(_) => {
+                return Outcome::Failure((
+                    Status::InternalServerError,
+                    Error::Forbidden("Error validating token cookie".to_owned()),
+                ))
+            }
+        };
+
         match config.auth_provider() {
             Some(auth_provider) => match request.cookies().get_private("token") {
                 Some(token) => {
                     let authorised = auth_provider
-                        .check_token(token.value().parse().unwrap())
+                        .check_token(&token.value().parse().unwrap(), source_ip)
                         .await;
                     match authorised {
                         Ok(true) => Outcome::Success(Authorized(true)),
@@ -126,9 +186,10 @@ async fn redirect_google(
     config: &State<Config>,
     cookies: &CookieJar<'_>,
     token: TokenResponse<Google>,
+    source_ip: SourceIP<'_>,
     translations: Translations,
 ) -> Result<String, Error> {
-    redirect_generic(config, cookies, token, translations).await
+    redirect_generic(config, cookies, token, source_ip, translations).await
 }
 
 #[derive(serde::Deserialize)]
@@ -138,11 +199,15 @@ struct GoogleUserInfo {
 }
 
 // Currently only checks whether we can actually login with the provided cookie
-async fn check_token_google(token: TokenCookie) -> Result<bool, Error> {
+async fn check_token_google(token: &TokenCookie, source_ip: SourceIP<'_>) -> Result<bool, Error> {
+    if token.ip != source_ip.0 {
+        return Ok(false);
+    }
+
     let user_info: GoogleUserInfo = reqwest::Client::builder()
         .build()?
         .get("https://openidconnect.googleapis.com/v1/userinfo")
-        .header(AUTHORIZATION, format!("Bearer {}", token.0))
+        .header(AUTHORIZATION, format!("Bearer {}", token.token))
         .send()
         .await?
         .json()
@@ -163,9 +228,10 @@ async fn redirect_microsoft(
     config: &State<Config>,
     cookies: &CookieJar<'_>,
     token: TokenResponse<Microsoft>,
+    source_ip: SourceIP<'_>,
     translations: Translations,
 ) -> Result<String, Error> {
-    redirect_generic(config, cookies, token, translations).await
+    redirect_generic(config, cookies, token, source_ip, translations).await
 }
 
 #[derive(serde::Deserialize)]
@@ -175,11 +241,18 @@ struct MicrosoftUserInfo {
 }
 
 // Currently only checks whether we can actually login with the provided cookie
-async fn check_token_microsoft(token: TokenCookie) -> Result<bool, Error> {
+async fn check_token_microsoft(
+    token: &TokenCookie,
+    source_ip: SourceIP<'_>,
+) -> Result<bool, Error> {
+    if token.ip != source_ip.0 {
+        return Ok(false);
+    }
+
     let user_info: MicrosoftUserInfo = reqwest::Client::builder()
         .build()?
         .get("https://graph.microsoft.com/v1.0/me")
-        .header(AUTHORIZATION, format!("Bearer {}", token.0))
+        .header(AUTHORIZATION, format!("Bearer {}", token.token))
         .send()
         .await?
         .json()
@@ -192,15 +265,17 @@ async fn redirect_generic<T>(
     config: &State<Config>,
     cookies: &CookieJar<'_>,
     token: TokenResponse<T>,
+    source_ip: SourceIP<'_>,
     translations: Translations,
 ) -> Result<String, Error> {
+    let proposed_token = TokenCookie::new(token, source_ip);
     if let Some(auth_provider) = config.auth_provider() {
         if auth_provider
-            .check_token(TokenCookie(token.access_token().to_owned()))
+            .check_token(&proposed_token, source_ip)
             .await?
         {
             cookies.add_private(
-                Cookie::build("token", token.access_token().to_owned())
+                Cookie::build("token", proposed_token.to_string())
                     .http_only(true)
                     .secure(true)
                     .same_site(SameSite::None)
