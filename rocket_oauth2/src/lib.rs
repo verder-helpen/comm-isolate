@@ -521,8 +521,14 @@ fn sentinel_abort<K: 'static>(rocket: &Rocket<Ignite>, wrapper: &str) -> bool {
     }
 
     let type_name = std::any::type_name::<K>();
-    error!("{}<{}> was used in a mounted route without attaching a matching fairing", wrapper, type_name);
-    info!("attach either OAuth2::<{0}>::fairing() or OAuth2::<{0}>::custom()", type_name);
+    error!(
+        "{}<{}> was used in a mounted route without attaching a matching fairing",
+        wrapper, type_name
+    );
+    info!(
+        "attach either OAuth2::<{0}>::fairing() or OAuth2::<{0}>::custom()",
+        type_name
+    );
     true
 }
 
@@ -595,7 +601,11 @@ impl<K: 'static> OAuth2<K> {
                 }
             };
 
-            Ok(Self::_init(rocket, hyper_rustls_adapter::HyperRustlsAdapter::default(), config))
+            Ok(Self::_init(
+                rocket,
+                hyper_rustls_adapter::HyperRustlsAdapter::default(),
+                config,
+            ))
         })
     }
 
