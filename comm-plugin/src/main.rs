@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use rocket::http::Status;
 use rocket::response::content::RawJavaScript;
 use rocket::response::stream::{Event, EventStream};
@@ -146,15 +148,28 @@ async fn auth_result(
     response
 }
 
+struct MyRocket<'a>(&'a rocket::Rocket<rocket::Orbit>);
+
+#[rocket::async_trait]
+impl<'r> rocket::request::FromRequest<'r> for MyRocket<'r> {
+    type Error = Infallible;
+
+    async fn from_request(
+        request: &'r rocket::request::Request<'_>,
+    ) -> rocket::request::Outcome<MyRocket<'r>, Infallible> {
+        rocket::request::Outcome::Success(MyRocket(request.rocket()))
+    }
+}
+
 #[get("/live/session_info/<host_token>")]
-async fn live_session_info(
+async fn live_session_info<'a>(
     queue: &State<Sender<AttributesReceivedEvent>>,
     mut end: Shutdown,
     host_token: String,
     config: &State<Config>,
-    db: SessionDBConn,
     authorized: Authorized,
-) -> EventStream![] {
+    rocket: MyRocket<'a>,
+) -> EventStream![Event + 'a] {
     let mut rx = queue.subscribe();
 
     let host_token = HostToken::from_platform_jwt(
@@ -171,6 +186,10 @@ async fn live_session_info(
                 select! {
                     msg = rx.recv() => match msg {
                         Ok(msg) => {
+                            let db = match SessionDBConn::get_one(rocket.0).await {
+                                Some(db) => db,
+                                None => break,
+                            };
                             // fetch all attribute ids related to the provided host token
                             if let Ok(sessions) = Session::find_by_room_id(
                                 host_token.room_id.clone(),
