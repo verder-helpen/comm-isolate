@@ -175,41 +175,42 @@ async fn live_session_info<'a>(
     let host_token = HostToken::from_platform_jwt(
         &host_token,
         config.auth_during_comm_config().host_verifier(),
-    )
-    .unwrap();
+    );
 
     EventStream! {
-        if authorized.into() {
-            yield Event::data("start");
+        if let Ok(host_token) = host_token {
+            if authorized.into() {
+                yield Event::data("start");
 
-            loop {
-                select! {
-                    msg = rx.recv() => match msg {
-                        Ok(msg) => {
-                            let db = match SessionDBConn::get_one(rocket.0).await {
-                                Some(db) => db,
-                                None => break,
-                            };
-                            // fetch all attribute ids related to the provided host token
-                            if let Ok(sessions) = Session::find_by_room_id(
-                                host_token.room_id.clone(),
-                                &db
-                            ).await {
-                                let attr_ids: Vec<String> = sessions
-                                    .iter()
-                                    .map(|session: &Session| session.attr_id.clone())
-                                    .collect();
+                loop {
+                    select! {
+                        msg = rx.recv() => match msg {
+                            Ok(msg) => {
+                                let db = match SessionDBConn::get_one(rocket.0).await {
+                                    Some(db) => db,
+                                    None => break,
+                                };
+                                // fetch all attribute ids related to the provided host token
+                                if let Ok(sessions) = Session::find_by_room_id(
+                                    host_token.room_id.clone(),
+                                    &db
+                                ).await {
+                                    let attr_ids: Vec<String> = sessions
+                                        .iter()
+                                        .map(|session: &Session| session.attr_id.clone())
+                                        .collect();
 
-                                if attr_ids.contains(&msg.attr_id) {
-                                    yield Event::data("update");
-                                }
-                            };
+                                    if attr_ids.contains(&msg.attr_id) {
+                                        yield Event::data("update");
+                                    }
+                                };
+                            },
+                            Err(RecvError::Closed) => break,
+                            Err(RecvError::Lagged(_)) => continue,
                         },
-                        Err(RecvError::Closed) => break,
-                        Err(RecvError::Lagged(_)) => continue,
-                    },
-                    _ = &mut end => break,
-                };
+                        _ = &mut end => break,
+                    };
+                }
             }
         }
 
