@@ -245,6 +245,7 @@ mod tests {
             translations: HashMap::new(),
             decrypter,
             auth_provider: None,
+            host_ip_header: None,
             verifier,
             auth_during_comm_config,
         };
