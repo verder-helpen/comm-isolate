@@ -18,7 +18,7 @@ josekit = "0.8.1"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 rocket_oauth2 = { git = "https://github.com/arjentz/rocket_oauth2.git", rev = "214efa99b0bd95c0df4d3f3d4c6235ae25610e37" }
 rocket_sync_db_pools = { version = "0.1.0-rc.2", features = ["postgres_pool"] }
-serde = "1.0.151"
+serde = "1.0.152"
 serde_json = "1.0.91"
 serde_yaml = "0.9.16"
 thiserror = "1.0.38"
@@ -32,6 +32,6 @@ unic-langid = "0.9.1"
 accept-language = "2.0.0"
 
 [dev-dependencies]
-serial_test = "0.10.0"
+serial_test = "1.0.0"
 tokio-test = "0.4.2"
 figment = { version = "0.10.8", features = ["env", "toml", "json"] }
