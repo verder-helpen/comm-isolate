@@ -70,6 +70,7 @@ impl From<Credentials> for SortedCredentials {
 
 /// render a list of users and credentials to html or json
 pub fn render_credentials(
+    config: &Config,
     credentials: Vec<Credentials>,
     render_type: RenderType,
     translations: Translations,
@@ -91,6 +92,10 @@ pub fn render_credentials(
 
     context.insert("translations", translations.all());
     context.insert("credentials", &sorted_credentials);
+    if config.auth_provider().is_some() {
+        let logout_url = format!("{}/auth/logout", config.external_host_url());
+        context.insert("logout_url", &logout_url);
+    }
 
     let content = if render_type == RenderType::HtmlPage {
         TEMPLATES.render("base.html", &context)?
@@ -263,7 +268,8 @@ mod tests {
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
         let out_result =
-            render_credentials(credentials, RenderType::Html, translations.clone()).unwrap();
+            render_credentials(&config, credentials, RenderType::Html, translations.clone())
+                .unwrap();
         let result: &str = "<sectionclass=\"credentials\"><h4>HenkDieter</\
                             h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
                             dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
@@ -275,8 +281,13 @@ mod tests {
         );
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let out_result =
-            render_credentials(credentials, RenderType::HtmlPage, translations.clone()).unwrap();
+        let out_result = render_credentials(
+            &config,
+            credentials,
+            RenderType::HtmlPage,
+            translations.clone(),
+        )
+        .unwrap();
         let result: &str = "<!doctypehtml><htmllang=\"en\"><head><metacharset=\"utf-8\"\
                             ><metaname=\"viewport\"content=\"width=device-width,initial-scale=1\"\
                             ><title>Gegevens</title></head><body><main><divclass=\"attributes\"\
@@ -291,7 +302,9 @@ mod tests {
         );
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let rendered = render_credentials(credentials, RenderType::Json, translations).unwrap();
+        let rendered =
+            render_credentials(&config, credentials, RenderType::Json, translations.clone())
+                .unwrap();
         let result: serde_json::Value = serde_json::from_str(rendered.content()).unwrap();
         let expected = serde_json::json! {
             [{

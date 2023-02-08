@@ -1,6 +1,4 @@
 <div>
   <p class="notification">{{ translations.login_expired }}</p>
-  <form method="post" target="_blank" rel="noreferrer noopener" action="{{ logout_url }}">
-    <button type="submit" class="button primary">{{ translations.logout }}</button>
-  </form>
+  {% include "logout.html" %}
 </div>

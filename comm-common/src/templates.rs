@@ -74,8 +74,9 @@ lazy_static! {
 
         include_template!(tera, "base.html");
         include_template!(tera, "credentials.html");
-        include_template!(tera, "login.html");
         include_template!(tera, "expired.html");
+        include_template!(tera, "login.html");
+        include_template!(tera, "logout.html");
         include_template!(tera, "not_found.html");
 
         tera

@@ -275,7 +275,9 @@ pub fn render_unauthorized(
         let mut context = Context::new();
 
         context.insert("translations", translations.all());
-        context.insert("logout_url", &logout_url);
+        if config.auth_provider().is_some() {
+            context.insert("logout_url", &logout_url);
+        }
 
         let content = TEMPLATES.render("expired.html", &context)?;
         return Ok(RenderedContent {
@@ -298,7 +300,9 @@ pub fn render_not_found(
         let mut context = Context::new();
 
         context.insert("translations", translations.all());
-        context.insert("logout_url", &logout_url);
+        if config.auth_provider().is_some() {
+            context.insert("logout_url", &logout_url);
+        }
 
         let content = TEMPLATES.render("not_found.html", &context)?;
         return Ok(RenderedContent {
