@@ -251,7 +251,7 @@ async fn session_info(
 
         return Ok(status::Custom(
             Status::Ok,
-            render_credentials(credentials, RenderType::Html, translations)?,
+            render_credentials(config, credentials, RenderType::Html, translations)?,
         ));
     }
 
