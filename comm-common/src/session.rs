@@ -271,7 +271,7 @@ session = {{ url = "{}" }}
         };
 
         Session {
-            guest_token: guest_token,
+            guest_token,
             auth_result: None,
             attr_id: random_string(32),
         }
