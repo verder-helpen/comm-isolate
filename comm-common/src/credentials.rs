@@ -280,8 +280,7 @@ mod tests {
         );
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let rendered =
-            render_credentials(credentials, RenderType::Json, translations.clone()).unwrap();
+        let rendered = render_credentials(credentials, RenderType::Json, translations).unwrap();
         let result: serde_json::Value = serde_json::from_str(rendered.content()).unwrap();
         let expected = serde_json::json! {
             [{

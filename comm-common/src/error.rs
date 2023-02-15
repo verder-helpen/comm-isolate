@@ -50,7 +50,7 @@ impl<'r, 'o: 'r> rocket::response::Responder<'r, 'o> for Error {
         };
 
         // Log the error to stderr
-        eprintln!("Error {}", message);
+        eprintln!("Error {message}");
 
         if request.headers().get_one("Accept") == Some("application/json") {
             let body = json!({ "error": status.to_string() });
