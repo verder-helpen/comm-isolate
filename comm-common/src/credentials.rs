@@ -66,6 +66,7 @@ impl From<Credentials> for SortedCredentials {
 
 /// render a list of users and credentials to html or json
 pub fn render_credentials(
+    config: &Config,
     credentials: Vec<Credentials>,
     render_type: RenderType,
     translations: Translations,
@@ -87,6 +88,9 @@ pub fn render_credentials(
 
     context.insert("translations", translations.all());
     context.insert("credentials", &sorted_credentials);
+    if let Some(custom_css_file) = &config.custom_css_file {
+        context.insert("custom_css_file", &custom_css_file);
+    }
 
     let content = if render_type == RenderType::HtmlPage {
         TEMPLATES.render("base.html", &context)?
@@ -243,6 +247,7 @@ mod tests {
             sentry_dsn: None,
             default_locale: String::from("nl"),
             translations: HashMap::new(),
+            custom_css_file: None,
             decrypter,
             auth_provider: None,
             verifier,
@@ -261,7 +266,7 @@ mod tests {
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
         let out_result =
-            render_credentials(credentials, RenderType::Html, translations.clone()).unwrap();
+            render_credentials(&config, credentials, RenderType::Html, translations.clone()).unwrap();
         let result: &str = "<sectionclass=\"credentials\"><h4>HenkDieter</h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></dd></dl></section>";
 
         assert_eq!(
@@ -271,7 +276,7 @@ mod tests {
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
         let out_result =
-            render_credentials(credentials, RenderType::HtmlPage, translations.clone()).unwrap();
+            render_credentials(&config, credentials, RenderType::HtmlPage, translations.clone()).unwrap();
         let result: &str = "<!doctypehtml><htmllang=\"en\"><head><metacharset=\"utf-8\"><metaname=\"viewport\"content=\"width=device-width,initial-scale=1\"><title>Gegevens</title></head><body><main><divclass=\"attributes\"><div><h4>Gegevens</h4><sectionclass=\"credentials\"><h4>HenkDieter</h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></dd></dl></section></div></div></main></body></html>";
 
         assert_eq!(
@@ -281,7 +286,7 @@ mod tests {
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
         let rendered =
-            render_credentials(credentials, RenderType::Json, translations.clone()).unwrap();
+            render_credentials(&config, credentials, RenderType::Json, translations.clone()).unwrap();
         let result: serde_json::Value = serde_json::from_str(rendered.content()).unwrap();
         let expected = serde_json::json! {
             [{

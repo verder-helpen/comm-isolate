@@ -1,13 +1,12 @@
-use crate::auth;
-use crate::error::Error;
+use std::{collections::HashMap, convert::TryFrom};
 
 use josekit::{jwe::JweDecrypter, jws::JwsVerifier};
 use serde::Deserialize;
-use std::{collections::HashMap, convert::TryFrom};
 use verder_helpen_jwt::{EncryptionKeyConfig, SignKeyConfig};
 
 #[cfg(feature = "auth_during_comm")]
 pub(crate) use self::auth_during_comm::{AuthDuringCommConfig, RawAuthDuringCommConfig};
+use crate::{auth, error::Error};
 
 pub type LanguageTranslations = HashMap<String, HashMap<String, String>>;
 
@@ -25,6 +24,8 @@ pub struct RawConfig {
     default_locale: String,
     /// Translations indexed by locale
     translations: LanguageTranslations,
+    /// Filename providing custom CSS
+    custom_css_file: Option<String>,
 
     /// Private key used to decrypt Verder Helpen JWEs
     decryption_privkey: EncryptionKeyConfig,
@@ -49,6 +50,7 @@ pub struct Config {
     pub sentry_dsn: Option<String>,
     pub default_locale: String,
     pub translations: LanguageTranslations,
+    pub custom_css_file: Option<String>,
 
     pub decrypter: Box<dyn JweDecrypter>,
     pub verifier: Box<dyn JwsVerifier>,
@@ -63,6 +65,7 @@ pub struct Config {
 // This tryfrom can be removed once try_from for fields lands in serde
 impl TryFrom<RawConfig> for Config {
     type Error = Error;
+
     fn try_from(raw_config: RawConfig) -> Result<Config, Error> {
         #[cfg(feature = "auth_during_comm")]
         let auth_during_comm_config =
@@ -82,6 +85,7 @@ impl TryFrom<RawConfig> for Config {
             sentry_dsn: raw_config.sentry_dsn,
             default_locale: raw_config.default_locale,
             translations: raw_config.translations,
+            custom_css_file: raw_config.custom_css_file,
             auth_provider,
             decrypter: Box::<dyn JweDecrypter>::try_from(raw_config.decryption_privkey)?,
             verifier: Box::<dyn JwsVerifier>::try_from(raw_config.signature_pubkey)?,
@@ -136,11 +140,11 @@ impl Config {
 
 #[cfg(feature = "auth_during_comm")]
 mod auth_during_comm {
-    use serde::Deserialize;
     use std::{convert::TryFrom, fmt::Debug};
-    use verder_helpen_jwt::SignKeyConfig;
 
     use josekit::jws::{alg::hmac::HmacJwsAlgorithm, JwsSigner, JwsVerifier};
+    use serde::Deserialize;
+    use verder_helpen_jwt::SignKeyConfig;
 
     use crate::error::Error;
 
@@ -197,6 +201,7 @@ mod auth_during_comm {
     // This tryfrom can be removed once try_from for fields lands in serde
     impl TryFrom<RawAuthDuringCommConfig> for AuthDuringCommConfig {
         type Error = Error;
+
         fn try_from(raw_config: RawAuthDuringCommConfig) -> Result<AuthDuringCommConfig, Error> {
             let guest_verifier = HmacJwsAlgorithm::Hs256
                 .verifier_from_bytes(raw_config.guest_signature_secret.0)
@@ -270,16 +275,21 @@ mod auth_during_comm {
             let test_verifier = HmacJwsAlgorithm::Hs256
                 .verifier_from_bytes(test_secret.0)
                 .unwrap();
-            assert_eq!(format!("{:?}", test_verifier), "HmacJwsVerifier { algorithm: Hs256, private_key: PKey { algorithm: \"HMAC\" }, key_id: None }");
+            assert_eq!(
+                format!("{:?}", test_verifier),
+                "HmacJwsVerifier { algorithm: Hs256, private_key: PKey { algorithm: \"HMAC\" }, \
+                 key_id: None }"
+            );
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Config;
     use figment::providers::{Format, Toml};
     use rocket::figment::Figment;
+
+    use super::Config;
 
     const TEST_CONFIG_VALID: &str = r#"
 [global]
