@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
 use rocket::http::Status;
-use rocket::response::content::RawJavaScript;
+use rocket::response::content::{RawJavaScript, RawCss};
 use rocket::response::stream::{Event, EventStream};
 use rocket::response::{content::RawHtml, status};
 use rocket::serde::{Deserialize, Serialize};
@@ -241,7 +241,7 @@ async fn session_info(
 
         return Ok(status::Custom(
             Status::Ok,
-            render_credentials(credentials, RenderType::Html, translations)?,
+            render_credentials(config, credentials, RenderType::Html, translations)?,
         ));
     }
 
@@ -261,6 +261,11 @@ async fn attribute_ui(_token: String) -> RawHtml<&'static str> {
     RawHtml(include_str!("../attribute-ui/index.html"))
 }
 
+#[get("/attribute.css")]
+async fn attribute_css() -> RawCss<&'static str> {
+    RawCss(include_str!("../attribute-ui/attribute.css"))
+}
+
 #[get("/attribute.js")]
 async fn attribute_js() -> RawJavaScript<&'static str> {
     RawJavaScript(include_str!("../attribute-ui/attribute.js"))
@@ -276,7 +281,7 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/guest", routes![init, start,])
         .mount(
             "/host",
-            routes![live_session_info, session_info, attribute_ui, attribute_js,],
+            routes![live_session_info, session_info, attribute_ui, attribute_css, attribute_js,],
         )
         .attach(SessionDBConn::fairing());
 

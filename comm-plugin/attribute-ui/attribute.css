@@ -1,0 +1,39 @@
+html, body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.credentials {
+  padding: 0.5rem;
+}
+
+.credentials::after {
+  position: absolute;
+  bottom: 0;
+  content: 'Secured by';
+  font-size: 16px;
+  padding: 0.2rem 10rem 0.2rem 0;
+  background-image: var(--logo);
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+.credentials h4 {
+  margin: 0.75rem 0;
+}
+
+.credentials dl {
+  background-color: transparent;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+
+.credentials dl dt {
+  color: #333;
+  margin-bottom: 0.3rem;
+}
