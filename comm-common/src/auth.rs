@@ -1,10 +1,6 @@
 use core::convert::Infallible;
 use std::{convert::TryFrom, str::FromStr};
 
-use crate::error::Error;
-use crate::templates::{RenderType, RenderedContent, TEMPLATES};
-use crate::{config::Config, translations::Translations};
-
 use reqwest::header::AUTHORIZATION;
 use rocket::{
     fairing::{AdHoc, Fairing},
@@ -17,6 +13,13 @@ use rocket::{
 use rocket_oauth2::{OAuth2, TokenResponse};
 use serde::{Deserialize, Serialize};
 use tera::Context;
+
+use crate::{
+    config::Config,
+    error::Error,
+    templates::{RenderType, RenderedContent, TEMPLATES},
+    translations::Translations,
+};
 
 #[derive(Deserialize, Serialize)]
 pub struct LoginUrl {

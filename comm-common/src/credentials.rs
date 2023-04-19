@@ -1,14 +1,18 @@
-use crate::error::Error;
-#[cfg(feature = "session_db")]
-use crate::session::{Session, SessionDBConn};
-use crate::templates::{RenderType, RenderedContent, TEMPLATES};
-#[cfg(feature = "session_db")]
-use crate::types::platform_token::{FromPlatformJwt, HostToken};
-use crate::types::{Credentials, GuestAuthResult};
-use crate::{config::Config, translations::Translations};
 use serde::Serialize;
 use serde_json;
 use tera::Context;
+
+#[cfg(feature = "session_db")]
+use crate::session::{Session, SessionDBConn};
+#[cfg(feature = "session_db")]
+use crate::types::platform_token::{FromPlatformJwt, HostToken};
+use crate::{
+    config::Config,
+    error::Error,
+    templates::{RenderType, RenderedContent, TEMPLATES},
+    translations::Translations,
+    types::{Credentials, GuestAuthResult},
+};
 
 /// convert a list of guest jwt's to a list of credentials
 pub fn collect_credentials(
@@ -143,18 +147,16 @@ pub async fn get_credentials_for_host(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use std::collections::HashMap;
-    use std::convert::TryFrom;
-    use verder_helpen_jwt::{sign_and_encrypt_auth_result, EncryptionKeyConfig, SignKeyConfig};
+    use std::{collections::HashMap, convert::TryFrom};
 
     use josekit::{
         jwe::{JweDecrypter, JweEncrypter},
         jws::{alg::hmac::HmacJwsAlgorithm, JwsSigner, JwsVerifier},
     };
+    use verder_helpen_jwt::{sign_and_encrypt_auth_result, EncryptionKeyConfig, SignKeyConfig};
     use verder_helpen_proto::{AuthResult, AuthStatus};
 
+    use super::*;
     use crate::config::AuthDuringCommConfig;
 
     const EC_PUBKEY: &str = r"
@@ -262,7 +264,10 @@ mod tests {
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
         let out_result =
             render_credentials(credentials, RenderType::Html, translations.clone()).unwrap();
-        let result: &str = "<sectionclass=\"credentials\"><h4>HenkDieter</h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></dd></dl></section>";
+        let result: &str = "<sectionclass=\"credentials\"><h4>HenkDieter</\
+                            h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
+                            dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
+                            dd></dl></section>";
 
         assert_eq!(
             remove_whitespace(result),
@@ -272,7 +277,13 @@ mod tests {
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
         let out_result =
             render_credentials(credentials, RenderType::HtmlPage, translations.clone()).unwrap();
-        let result: &str = "<!doctypehtml><htmllang=\"en\"><head><metacharset=\"utf-8\"><metaname=\"viewport\"content=\"width=device-width,initial-scale=1\"><title>Gegevens</title></head><body><main><divclass=\"attributes\"><div><h4>Gegevens</h4><sectionclass=\"credentials\"><h4>HenkDieter</h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></dd></dl></section></div></div></main></body></html>";
+        let result: &str = "<!doctypehtml><htmllang=\"en\"><head><metacharset=\"utf-8\"\
+                            ><metaname=\"viewport\"content=\"width=device-width,initial-scale=1\"\
+                            ><title>Gegevens</title></head><body><main><divclass=\"attributes\"\
+                            ><div><h4>Gegevens</h4><sectionclass=\"credentials\"><h4>HenkDieter</\
+                            h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
+                            dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
+                            dd></dl></section></div></div></main></body></html>";
 
         assert_eq!(
             remove_whitespace(result),

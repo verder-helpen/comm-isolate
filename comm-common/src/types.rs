@@ -41,10 +41,12 @@ pub use platform_token::*;
 
 #[cfg(feature = "platform_token")]
 pub mod platform_token {
-    use crate::jwt::JwtError;
     use core::str;
+
     use josekit::{jws::JwsVerifier, jwt::JwtPayloadValidator};
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+    use crate::jwt::JwtError;
 
     #[derive(Deserialize, Debug)]
     pub struct HostToken {

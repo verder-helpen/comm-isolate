@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use crate::{error::Error, types::GuestToken};
 use rocket::tokio;
 use rocket_sync_db_pools::{database, postgres};
 use serde::{Deserialize, Serialize};
+
+use crate::{error::Error, types::GuestToken};
 
 #[database("session")]
 pub struct SessionDBConn(postgres::Client);
@@ -220,17 +221,17 @@ mod tests {
     };
     use serial_test::serial;
 
+    use super::Session;
     use crate::{
         prelude::{random_string, GuestToken, SessionDBConn},
         session::clean_db,
     };
 
-    use super::Session;
-
     async fn init_db() -> Option<SessionDBConn> {
         if let Some(test_db) = option_env!("TEST_DB") {
-            // Easiest (perhaps only) way to get a SessionDBConn is to actually get us a rocket instance that has ignited.
-            // this is to deal with all the rewrites rocket does on that struct.
+            // Easiest (perhaps only) way to get a SessionDBConn is to actually get us a
+            // rocket instance that has ignited. this is to deal with all the
+            // rewrites rocket does on that struct.
             let figment = Figment::from(rocket::Config::default())
                 .select(rocket::Config::DEBUG_PROFILE)
                 .merge(
@@ -311,7 +312,8 @@ session = {{ url = "{}" }}
     }
 
     #[test]
-    // this ensures test is not parallelised with other serial tests, ensuring only one database test is run at a time.
+    // this ensures test is not parallelised with other serial tests, ensuring only one database
+    // test is run at a time.
     #[serial]
     fn test_register_auth_result() {
         tokio_test::block_on(async {

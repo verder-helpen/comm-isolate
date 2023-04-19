@@ -7,7 +7,8 @@ pub mod error;
 /// JWT signing functionality
 pub mod jwt;
 #[cfg(feature = "session_db")]
-/// Database manipulation code for keeping track of sessions based on platform tokens
+/// Database manipulation code for keeping track of sessions based on platform
+/// tokens
 pub mod session;
 /// Tera templates
 pub mod templates;
@@ -24,20 +25,20 @@ pub mod credentials;
 extern crate lazy_static;
 
 pub mod prelude {
-    pub use crate::auth::{render_login, render_unauthorized, AuthProvider, Authorized, LoginUrl};
-    pub use crate::config::Config;
-    pub use crate::error::Error;
-    pub use crate::jwt::sign_auth_select_params;
-    #[cfg(feature = "session_db")]
-    pub use crate::session::{Session, SessionDBConn};
-    pub use crate::types::StartRequest;
-    pub use crate::types::{AuthSelectParams, Credentials, GuestAuthResult};
-    pub use crate::util::random_string;
-
     #[cfg(feature = "session_db")]
     pub use crate::credentials::get_credentials_for_host;
     #[cfg(feature = "platform_token")]
     pub use crate::credentials::{collect_credentials, render_credentials};
+    #[cfg(feature = "session_db")]
+    pub use crate::session::{Session, SessionDBConn};
     #[cfg(feature = "platform_token")]
     pub use crate::types::{FromPlatformJwt, GuestToken, HostToken};
+    pub use crate::{
+        auth::{render_login, render_unauthorized, AuthProvider, Authorized, LoginUrl},
+        config::Config,
+        error::Error,
+        jwt::sign_auth_select_params,
+        types::{AuthSelectParams, Credentials, GuestAuthResult, StartRequest},
+        util::random_string,
+    };
 }
