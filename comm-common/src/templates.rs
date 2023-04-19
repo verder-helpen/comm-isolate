@@ -1,9 +1,10 @@
+use std::path::Path;
+
 use lazy_static;
 use rocket::{
     response::{self, content, Responder},
     Request,
 };
-use std::path::Path;
 use tera::Tera;
 
 #[derive(PartialEq, Eq)]
@@ -39,8 +40,9 @@ pub enum RenderType {
     HtmlPage,
 }
 
-// Includes template at runtime, if available, otherwise uses compile-time template. This enables the option to override
-// the templates per comm-plugin, but also to simply use the default template.
+// Includes template at runtime, if available, otherwise uses compile-time
+// template. This enables the option to override the templates per comm-plugin,
+// but also to simply use the default template.
 macro_rules! include_template {
     ($tera:ident, $template_name:literal) => {
         if Path::new(concat!("templates/", $template_name)).exists() {

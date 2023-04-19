@@ -1,6 +1,9 @@
-use rocket::request::{self, FromRequest, Request};
-use rocket::serde::Serialize;
 use std::collections::HashMap;
+
+use rocket::{
+    request::{self, FromRequest, Request},
+    serde::Serialize,
+};
 use unic_langid::{parser::parse_language_identifier, LanguageIdentifier};
 
 use crate::config::Config;

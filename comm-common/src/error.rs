@@ -1,4 +1,3 @@
-use crate::jwt::JwtError;
 use rocket::{
     http::{ContentType, Status},
     Response,
@@ -8,8 +7,11 @@ use serde_json::json;
 use tera;
 use thiserror::Error;
 
+use crate::jwt::JwtError;
+
 #[derive(Debug, Error)]
-/// General Error type, used to capture all kinds of common errors. Can be used to respond to requests
+/// General Error type, used to capture all kinds of common errors. Can be used
+/// to respond to requests
 pub enum Error {
     #[error("Not found")]
     NotFound,
