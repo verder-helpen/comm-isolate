@@ -33,7 +33,7 @@ pub struct GuestAuthResult {
 pub struct Credentials {
     pub purpose: Option<String>,
     pub name: Option<String>,
-    pub attributes: HashMap<String, String>,
+    pub attributes: Option<HashMap<String, String>>,
 }
 
 #[cfg(feature = "platform_token")]

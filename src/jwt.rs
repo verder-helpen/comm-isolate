@@ -85,8 +85,7 @@ mod tests {
     use super::{sign_auth_select_params, sign_start_auth_request};
     use crate::prelude::AuthSelectParams;
 
-    const RSA_PRIVKEY: &'static str =
-        "{\"type\":\"RSA\",\"key\":\"-----BEGIN PRIVATE \
+    const RSA_PRIVKEY: &'static str = "{\"type\":\"RSA\",\"key\":\"-----BEGIN PRIVATE \
          KEY-----\\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDn/BGtPZPgYa+5\\\
          nBhxaMuv+UV7nWxNXYUt3cYBoyIc3xD9VP9cSE/+RnrTjaXUGPZWlnbIzG/b3gkrA\\\
          nEIg1zfjxUth34N+QycnjJf0tkcrZaR7q0JYEH2ZiAaMzAI11dzNuX3rHX8d69pOi\\nu+T3WvMK/\
@@ -113,8 +112,7 @@ mod tests {
          09s0xscSACvFJh5Dm9gnuMHElBcpZFATIvFcbV5Y\\nMbJ/\
          NNQiD63NEcL9VXwT96sMx2tnduOq4sYzu84kwPQ4ohxmPt/7xHU3L8SGqoec\\nBs6neR/sZuHzNm8y/\
          xtxj2ZAEw==\\n-----END PRIVATE KEY-----\"}";
-    const RSA_PUBKEY: &'static str =
-        "{\"type\":\"RSA\",\"key\":\"-----BEGIN PUBLIC \
+    const RSA_PUBKEY: &'static str = "{\"type\":\"RSA\",\"key\":\"-----BEGIN PUBLIC \
          KEY-----\\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5/wRrT2T4GGvuQYcWjLr\\n/\
          lFe51sTV2FLd3GAaMiHN8Q/VT/XEhP/kZ6042l1Bj2VpZ2yMxv294JKwBCINc34\\\
          n8VLYd+DfkMnJ4yX9LZHK2Wke6tCWBB9mYgGjMwCNdXczbl96x1/HevaTorvk91rz\\\

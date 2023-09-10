@@ -19,6 +19,7 @@ pub struct RawConfig {
     external_guest_url: Option<String>,
     external_host_url: Option<String>,
     /// Sentry DSN
+    #[cfg(feature = "sentry")]
     sentry_dsn: Option<String>,
     /// Default locale
     default_locale: String,
@@ -36,6 +37,8 @@ pub struct RawConfig {
     #[serde(flatten)]
     /// Configuration specific for auth during comm
     auth_during_comm_config: RawAuthDuringCommConfig,
+
+    custom_css: Option<String>,
 }
 
 /// configuration container for a typical verder-helpen communication plugin
@@ -45,6 +48,7 @@ pub struct Config {
     pub internal_url: String,
     pub external_guest_url: Option<String>,
     pub external_host_url: Option<String>,
+    #[cfg(feature = "sentry")]
     pub sentry_dsn: Option<String>,
     pub default_locale: String,
     pub translations: LanguageTranslations,
@@ -57,6 +61,8 @@ pub struct Config {
     #[cfg(feature = "auth_during_comm")]
     #[serde(flatten)]
     pub auth_during_comm_config: AuthDuringCommConfig,
+
+    pub custom_css: Option<String>,
 }
 
 // This tryfrom can be removed once try_from for fields lands in serde
@@ -79,12 +85,14 @@ impl TryFrom<RawConfig> for Config {
             internal_url: raw_config.internal_url,
             external_guest_url: raw_config.external_guest_url,
             external_host_url: raw_config.external_host_url,
+            #[cfg(feature = "sentry")]
             sentry_dsn: raw_config.sentry_dsn,
             default_locale: raw_config.default_locale,
             translations: raw_config.translations,
             auth_provider,
             decrypter: Box::<dyn JweDecrypter>::try_from(raw_config.decryption_privkey)?,
             verifier: Box::<dyn JwsVerifier>::try_from(raw_config.signature_pubkey)?,
+            custom_css: raw_config.custom_css,
         })
     }
 }
@@ -116,6 +124,7 @@ impl Config {
         }
     }
 
+    #[cfg(feature = "sentry")]
     pub fn sentry_dsn(&self) -> Option<&str> {
         self.sentry_dsn.as_deref()
     }

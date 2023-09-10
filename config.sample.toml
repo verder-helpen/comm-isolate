@@ -1,5 +1,5 @@
 [global]
-## NOTE: Don't (!) use this key! Generate your own!
+## NOTE: DON'T USE THIS KEY! GENERATE YOUR OWN!
 secret_key = "2P7d9MsOAZWyPu8HZn2AyMvOeN9MhkFEb4C9IzkLvno="
 
 internal_url = "http://comm-isolate:8000/internal"
@@ -149,7 +149,6 @@ Bs6neR/sZuHzNm8y/xtxj2ZAEw==
 session = { url = "postgres://tg@comm-isolate-psql:5432/tg" }
 
 [global.translations.en]
-title = "Information"
 unknown_error = "Unknown error"
 loading = "Loading..."
 purpose = "Subject"
@@ -168,9 +167,9 @@ login_successful = "Login successfull. You can close this window."
 logout_successful = "Logout successfull. You can close this window."
 insufficient_permission = "You do not have sufficient permissions to access this resource."
 no_credentials_found = "There are no authenticated guests (yet)"
+secured_by = "secured by"
 
 [global.translations.nl]
-title = "Verder Helpen gegevens"
 unknown_error = "Onbekende fout"
 loading = "Laden..."
 purpose = "Onderwerp"
@@ -189,3 +188,4 @@ login_successful = "U bent ingelogd. U kan dit venster nu sluiten"
 logout_successful = "U bent uitgelogd. U kan dit venster nu sluiten"
 insufficient_permission = "Uw account heeft niet voldoende rechten, probeer met een ander account in te loggen"
 no_credentials_found = "Er zijn (nog) geen geïdentificeerde gasten"
+secured_by = "beveiligd door"

@@ -1,0 +1,46 @@
+{% macro attributes(credential) %}
+<div class="credential">
+  {%- if credential.name -%}
+  <div>
+    <h4>{{ credential.name }}</h4>
+  </div>
+  {%- endif -%}
+  {%- if credential.attributes -%}
+  <div>
+    <dl>
+      {%- for kv in credential.attributes -%}
+        <dt>
+          <span>{{ translations[kv.0]|default(value=kv.0) }}</span>
+        </dt>
+        <dd>
+          <div>
+            <span class="icon"></span>
+            <span class="text">{{ kv.1 }}</span>
+          </div>
+        </dd>
+      {%- endfor -%}
+    </dl>
+  </div>
+  {%- endif -%}
+</div>
+{% endmacro attributes %}
+
+{% macro guest_busy(credential) %}
+<div class="notification">
+  {%- if credential.name -%}
+  <p>{{ credential.name }} {{ translations.guest_busy }}</p>
+  {%- else -%}
+  <p>{{ translations.guest_busy_anonymous }}</p>
+  {%- endif -%}
+</div>
+{% endmacro %}
+
+{% macro guest_cancelled(credential) %}
+<div class="notification error">
+  {%- if credential.name -%}
+  <p>{{ credential.name }} {{ translations.guest_cancelled }}</p>
+  {%- else -%}
+  <p>{{ translations.guest_cancelled_anonymous }}</p>
+  {%- endif -%}
+</div>
+{% endmacro %}

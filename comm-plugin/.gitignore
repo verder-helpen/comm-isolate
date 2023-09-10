@@ -1,6 +1,0 @@
-/target
-/.cache
-attribute-ui/node_modules/
-attribute-ui/public/
-attribute-ui/.parcel-cache
-attribute-ui/.yarn-cache

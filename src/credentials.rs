@@ -1,11 +1,10 @@
 use serde::Serialize;
-use serde_json;
 use tera::Context;
 
 #[cfg(feature = "session_db")]
 use crate::session::{Session, SessionDBConn};
 #[cfg(feature = "session_db")]
-use crate::types::platform_token::{FromPlatformJwt, HostToken};
+use crate::types::platform_token::HostToken;
 use crate::{
     config::Config,
     error::Error,
@@ -22,43 +21,47 @@ pub fn collect_credentials(
     let mut credentials: Vec<Credentials> = vec![];
 
     for guest_auth_result in guest_auth_results.iter() {
-        if let Some(result) = &guest_auth_result.auth_result {
-            if let Some(attributes) =
-                verder_helpen_jwt::dangerous_decrypt_auth_result_without_verifying_expiration(
-                    result,
-                    config.verifier(),
-                    config.decrypter(),
-                )?
-                .attributes
-            {
-                credentials.push(Credentials {
-                    name: guest_auth_result.name.clone(),
-                    purpose: guest_auth_result.purpose.clone(),
-                    attributes,
-                });
-            }
+        let attributes = if let Some(result) = &guest_auth_result.auth_result {
+            verder_helpen_jwt::dangerous_decrypt_auth_result_without_verifying_expiration(
+                result,
+                config.verifier(),
+                config.decrypter(),
+            )?
+            .attributes
+        } else {
+            None
         };
+
+        credentials.push(Credentials {
+            name: guest_auth_result.name.clone(),
+            purpose: guest_auth_result.purpose.clone(),
+            attributes,
+        });
     }
 
     Ok(credentials)
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct SortedCredentials {
     pub purpose: Option<String>,
     pub name: Option<String>,
-    pub attributes: Vec<(String, String)>,
+    pub attributes: Option<Vec<(String, String)>>,
 }
 
 /// sorted credentials are sorted by their name (key)
 impl From<Credentials> for SortedCredentials {
     fn from(credentials: Credentials) -> Self {
-        let mut attributes = credentials
-            .attributes
-            .into_iter()
-            .collect::<Vec<(String, String)>>();
+        let attributes = if let Some(attributes) = credentials.attributes {
+            let mut attributes = attributes
+                .into_iter()
+                .collect::<Vec<(String, String)>>();
 
-        attributes.sort_by(|x, y| x.0.cmp(&y.0));
+            attributes.sort_by(|x, y| x.0.cmp(&y.0));
+            Some(attributes)
+        } else {
+            None
+        };
 
         SortedCredentials {
             purpose: credentials.purpose,
@@ -97,6 +100,10 @@ pub fn render_credentials(
         context.insert("logout_url", &logout_url);
     }
 
+    if let Some(custom_css) = &config.custom_css {
+        context.insert("custom_css", &custom_css);
+    }
+
     let content = if render_type == RenderType::HtmlPage {
         TEMPLATES.render("base.html", &context)?
     } else {
@@ -109,31 +116,15 @@ pub fn render_credentials(
     })
 }
 
-/// retrieve sessions for all users in a room
-/// the id of the room is provided by a host jwt
-#[cfg(feature = "session_db")]
-pub async fn get_sessions_for_host(
-    host_token: String,
-    config: &Config,
-    db: &SessionDBConn,
-) -> Result<Vec<Session>, Error> {
-    let host_token = HostToken::from_platform_jwt(
-        &host_token,
-        config.auth_during_comm_config().host_verifier(),
-    )?;
-
-    Session::find_by_room_id(host_token.room_id, db).await
-}
-
 /// retrieve authentication results for all users in a room
 /// the id of the room is provided by a host jwt
 #[cfg(feature = "session_db")]
 pub async fn get_credentials_for_host(
-    host_token: String,
+    host_token: HostToken,
     config: &Config,
     db: &SessionDBConn,
 ) -> Result<Vec<Credentials>, Error> {
-    let sessions = get_sessions_for_host(host_token, config, db).await?;
+    let sessions = Session::find_by_room_id(host_token.room_id, db).await?;
     for session in &sessions {
         session.mark_active(db).await?;
     }
@@ -146,8 +137,10 @@ pub async fn get_credentials_for_host(
             auth_result: session.auth_result,
         })
         .collect::<Vec<GuestAuthResult>>();
-
-    collect_credentials(&guest_auth_results, config)
+    println!("{:?}", &guest_auth_results);
+    let creds = collect_credentials(&guest_auth_results, config);
+    println!("{:?}", &creds);
+    creds
 }
 
 #[cfg(test)]
