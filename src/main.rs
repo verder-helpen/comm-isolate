@@ -273,8 +273,6 @@ async fn attribute_ui(
                 .await
                 .unwrap_or_else(|_| Vec::new());
 
-            dbg!(&credentials);
-
             return Ok(credentials::render_credentials(config, credentials, RenderType::Html, translations).unwrap());
         }
 
