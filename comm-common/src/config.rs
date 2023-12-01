@@ -31,6 +31,7 @@ pub struct RawConfig {
     signature_pubkey: SignKeyConfig,
 
     auth_provider: Option<String>,
+    host_ip_header: Option<String>,
 
     #[cfg(feature = "auth_during_comm")]
     #[serde(flatten)]
@@ -53,6 +54,7 @@ pub struct Config {
     pub verifier: Box<dyn JwsVerifier>,
 
     pub auth_provider: Option<auth::AuthProvider>,
+    pub host_ip_header: Option<String>,
 
     #[cfg(feature = "auth_during_comm")]
     #[serde(flatten)]
@@ -83,6 +85,7 @@ impl TryFrom<RawConfig> for Config {
             default_locale: raw_config.default_locale,
             translations: raw_config.translations,
             auth_provider,
+            host_ip_header: raw_config.host_ip_header,
             decrypter: Box::<dyn JweDecrypter>::try_from(raw_config.decryption_privkey)?,
             verifier: Box::<dyn JwsVerifier>::try_from(raw_config.signature_pubkey)?,
         })
@@ -126,6 +129,10 @@ impl Config {
 
     pub fn auth_provider(&self) -> &Option<auth::AuthProvider> {
         &self.auth_provider
+    }
+
+    pub fn host_ip_header(&self) -> Option<&str> {
+        self.host_ip_header.as_deref()
     }
 
     #[cfg(feature = "auth_during_comm")]
