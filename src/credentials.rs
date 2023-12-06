@@ -53,9 +53,7 @@ pub struct SortedCredentials {
 impl From<Credentials> for SortedCredentials {
     fn from(credentials: Credentials) -> Self {
         let attributes = if let Some(attributes) = credentials.attributes {
-            let mut attributes = attributes
-                .into_iter()
-                .collect::<Vec<(String, String)>>();
+            let mut attributes = attributes.into_iter().collect::<Vec<(String, String)>>();
 
             attributes.sort_by(|x, y| x.0.cmp(&y.0));
             Some(attributes)
@@ -240,7 +238,6 @@ mod tests {
             internal_url: "https://example.com".to_string(),
             external_host_url: None,
             external_guest_url: None,
-            sentry_dsn: None,
             default_locale: String::from("nl"),
             translations: HashMap::new(),
             decrypter,

@@ -4,8 +4,7 @@ extern crate lazy_static;
 use std::convert::Infallible;
 
 use rocket::{
-    get,
-    post,
+    get, post,
     response::{
         content::{RawCss, RawJavaScript},
         stream::{Event, EventStream},
@@ -144,7 +143,6 @@ async fn start(
         .text()
         .await?;
 
-
     // may fail when there are no subscribers
     let res = queue.send(AttributesUpdateEvent { attr_id });
     match res {
@@ -263,23 +261,27 @@ async fn attribute_ui(
     token: String,
 ) -> Result<RenderedContent, Error> {
     if authorized.into() {
-        let host_token = HostToken::from_platform_jwt(
-            &token,
-            config.auth_during_comm_config().host_verifier(),
-        );
+        let host_token =
+            HostToken::from_platform_jwt(&token, config.auth_during_comm_config().host_verifier());
 
         if let Ok(token) = host_token {
             let credentials = credentials::get_credentials_for_host(token, config, &db)
                 .await
                 .unwrap_or_else(|_| Vec::new());
 
-            return Ok(credentials::render_credentials(config, credentials, RenderType::Html, translations).unwrap());
+            return Ok(credentials::render_credentials(
+                config,
+                credentials,
+                RenderType::Html,
+                translations,
+            )
+            .unwrap());
         }
 
         return Err(Error::BadRequest("invalid host token"));
     }
 
-    Ok(auth::render_login(config, RenderType::Html, translations)?)
+    auth::render_login(config, RenderType::Html, translations)
 }
 
 #[get("/attribute.css")]
@@ -302,12 +304,7 @@ async fn main() -> Result<(), rocket::Error> {
         .mount("/guest", routes![init, start,])
         .mount(
             "/host",
-            routes![
-                session_info,
-                attribute_ui,
-                attribute_css,
-                attribute_js,
-            ],
+            routes![session_info, attribute_ui, attribute_css, attribute_js,],
         )
         .attach(SessionDBConn::fairing());
 
