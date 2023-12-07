@@ -104,7 +104,7 @@ impl<'r> FromRequest<'r> for Authorized {
                     match authorised {
                         Ok(true) => Outcome::Success(Authorized(true)),
                         Ok(false) => Outcome::Success(Authorized(false)), // token cookie not valid
-                        Err(_) => Outcome::Failure((
+                        Err(_) => Outcome::Error((
                             Status::InternalServerError,
                             Error::Forbidden("Error validating token cookie".to_owned()),
                         )),
@@ -203,11 +203,11 @@ async fn redirect_generic<T>(
             .await?
         {
             cookies.add_private(
-                Cookie::build("token", token.access_token().to_owned())
+                Cookie::build(("token", token.access_token().to_owned()))
                     .http_only(true)
                     .secure(true)
                     .same_site(SameSite::None)
-                    .finish(),
+                    .build(),
             );
 
             return Ok(translations.get(
@@ -233,7 +233,7 @@ async fn logout_generic(
     cookies: &CookieJar<'_>,
     translations: Translations,
 ) -> Result<String, Error> {
-    cookies.remove_private(Cookie::named("token"));
+    cookies.remove_private(Cookie::from("token"));
 
     Ok(translations.get(
         "logout_successful",
