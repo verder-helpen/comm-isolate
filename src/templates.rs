@@ -36,7 +36,6 @@ impl<'r> Responder<'r, 'static> for RenderedContent {
 pub enum RenderType {
     Json,
     Html,
-    HtmlPage, // TODO remove this type as a whole
 }
 
 // Includes template at runtime, if available, otherwise uses compile-time

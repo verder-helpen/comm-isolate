@@ -102,11 +102,7 @@ pub fn render_credentials(
         context.insert("custom_css", &custom_css);
     }
 
-    let content = if render_type == RenderType::HtmlPage {
-        TEMPLATES.render("base.html", &context)?
-    } else {
-        TEMPLATES.render("credentials.html", &context)?
-    };
+    let content = TEMPLATES.render("credentials.html", &context)?;
 
     Ok(RenderedContent {
         content,
@@ -238,12 +234,15 @@ mod tests {
             internal_url: "https://example.com".to_string(),
             external_host_url: None,
             external_guest_url: None,
+            #[cfg(feature = "sentry")]
+            sentry_dsn: None,
             default_locale: String::from("nl"),
             translations: HashMap::new(),
             decrypter,
             auth_provider: None,
             verifier,
             auth_during_comm_config,
+            custom_css: None,
         };
 
         let translations = Translations {
@@ -252,43 +251,32 @@ mod tests {
                 ("title".to_string(), "Gegevens".to_string()),
                 ("age".to_string(), "Leeftijd".to_string()),
                 ("email".to_string(), "E-mailadres".to_string()),
+                ("secured_by".to_string(), "Beveiligd door".to_string()),
             ]),
             language: "nl".to_string(),
         };
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let out_result =
+        let actual =
             render_credentials(&config, credentials, RenderType::Html, translations.clone())
                 .unwrap();
-        let result: &str = "<sectionclass=\"credentials\"><h4>HenkDieter</\
-                            h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
-                            dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
-                            dd></dl></section>";
+        let expected: &str =
+            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta \
+             name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Verder \
+             Helpen</title><script src=\"attribute.js\"></script><link href=\"attribute.css\" \
+             rel=\"stylesheet\" /></head><body><main><div class=\"status\"><div \
+             class=\"credential\"><div><h4>Henk \
+             Dieter</h4></div><div><dl><dt><span>Leeftijd</span></dt><dd><div><span \
+             class=\"icon\"></span><span \
+             class=\"text\">42</span></div></dd><dt><span>E-mailadres</span></dt><dd><div><span \
+             class=\"icon\"></span><span \
+             class=\"text\">hd@example.com</span></div></dd></dl></div></div><div \
+             class=\"footer\"><span class=\"text\">Beveiligd door</span><span \
+             class=\"logo\"></span></div></div></main></body></html>";
 
         assert_eq!(
-            remove_whitespace(result),
-            remove_whitespace(out_result.content())
-        );
-
-        let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let out_result = render_credentials(
-            &config,
-            credentials,
-            RenderType::HtmlPage,
-            translations.clone(),
-        )
-        .unwrap();
-        let result: &str = "<!doctypehtml><htmllang=\"en\"><head><metacharset=\"utf-8\"\
-                            ><metaname=\"viewport\"content=\"width=device-width,initial-scale=1\"\
-                            ><title>Gegevens</title></head><body><main><divclass=\"attributes\"\
-                            ><div><h4>Gegevens</h4><sectionclass=\"credentials\"><h4>HenkDieter</\
-                            h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
-                            dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
-                            dd></dl></section></div></div></main></body></html>";
-
-        assert_eq!(
-            remove_whitespace(result),
-            remove_whitespace(out_result.content())
+            remove_whitespace(expected),
+            remove_whitespace(actual.content())
         );
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
@@ -298,10 +286,10 @@ mod tests {
         let result: serde_json::Value = serde_json::from_str(rendered.content()).unwrap();
         let expected = serde_json::json! {
             [{
-                "purpose":"test_purpose",
-                "name":"Henk Dieter",
-                "attributes":{"age":"42","email":"hd@example.com"}}
-            ]
+                "purpose": "test_purpose",
+                "name": "Henk Dieter",
+                "attributes": { "age":"42", "email": "hd@example.com" }
+            }]
         };
 
         assert_eq!(result, expected);

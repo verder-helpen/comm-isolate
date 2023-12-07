@@ -223,8 +223,9 @@ mod tests {
 
     use super::Session;
     use crate::{
-        prelude::{random_string, GuestToken, SessionDBConn},
-        session::clean_db,
+        session::{clean_db, SessionDBConn},
+        types::GuestToken,
+        util::random_string,
     };
 
     async fn init_db() -> Option<SessionDBConn> {
