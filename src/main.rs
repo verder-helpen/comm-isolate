@@ -3,6 +3,9 @@ extern crate lazy_static;
 
 use std::convert::Infallible;
 
+use auth::Authorized;
+use config::Config;
+use error::Error;
 use rocket::{
     get, post,
     response::{
@@ -18,15 +21,10 @@ use rocket::{
     },
     Shutdown, State,
 };
-
-use auth::Authorized;
-use config::Config;
-use error::Error;
 use session::{Session, SessionDBConn};
 use templates::{RenderType, RenderedContent};
 use translations::Translations;
 use types::{AuthSelectParams, FromPlatformJwt, GuestToken, HostToken, StartRequest};
-
 use verder_helpen_proto::{ClientUrlResponse, StartRequestAuthOnly};
 
 mod auth;
