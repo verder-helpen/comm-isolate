@@ -15,23 +15,23 @@ verder-helpen-jwt = { git = "https://github.com/verder-helpen/verder-helpen-jwt.
 verder-helpen-proto = { git = "https://github.com/verder-helpen/verder-helpen-proto.git" }
 verder-helpen-sentry = { git = "https://github.com/verder-helpen/verder-helpen-sentry.git", optional = true }
 accept-language = "2.0.0"
-josekit = "0.8.2"
+josekit = "0.8.4"
 lazy_static = "1.4.0"
 rand = "0.8.5"
-reqwest = { version = "0.11.16", features = ["json"] }
-rocket = { version = "0.5.0-rc.3", features = ["json"] }
-rocket_oauth2 = { git = "https://github.com/arjentz/rocket_oauth2.git", rev = "214efa99b0bd95c0df4d3f3d4c6235ae25610e37" }
-rocket_sync_db_pools = { version = "0.1.0-rc.3", features = ["postgres_pool"] }
-serde = "1.0.159"
-serde_json = "1.0.95"
-serde_yaml = "0.9.19"
+reqwest = { version = "0.11.22", features = ["json"] }
+rocket = { version = "0.5.0", features = ["json"] }
+rocket_oauth2 = { git = "https://github.com/arjentz/rocket_oauth2.git", rev = "44d596d4f219816b287f525b1bc8260cb0229262" }
+rocket_sync_db_pools = { version = "0.1.0", features = ["postgres_pool"] }
+serde = "1.0.193"
+serde_json = "1.0.108"
+serde_yaml = "0.9.27"
 strum = "0.24.1"
 strum_macros = "0.24.3"
-tera = "1.18.1"
-thiserror = "1.0.40"
-unic-langid = "0.9.1"
+tera = "1.19.1"
+thiserror = "1.0.50"
+unic-langid = "0.9.3"
 
 [dev-dependencies]
-figment = { version = "0.10.8", features = ["env", "toml", "json"] }
+figment = { version = "0.10.12", features = ["env", "toml", "json"] }
 serial_test = "2.0.0"
-tokio-test = "0.4.2"
+tokio-test = "0.4.3"
