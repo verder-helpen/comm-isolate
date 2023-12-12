@@ -1,0 +1,144 @@
+:root {
+  --primary-color: 33, 0, 112;
+  --background-color: #fafbfb;
+  --container-max-width: 48rem;
+  --logo: url('/assets/verderhelpen.svg');
+  --light-grey: #ebedef;
+  --grey: #dde0e4;
+  --dark-grey: #a9a9a9;
+  --dark: #696969;
+  --border-radius: 0.2rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16;
+  line-height: 1.5;
+  margin: 0;
+  background-color: var(--background-color);
+  width: 100vw;
+  height: 100vh;
+}
+
+main {
+  padding: 1.25rem 1rem;
+  max-width: var(--container-max-width);
+  margin: auto;
+  height: 100%;
+}
+
+p {
+  color: var(--dark);
+  font-size: 17px;
+}
+
+a {
+  color: var(--primary-color);
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.credential {
+  background-color: white;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--grey);
+}
+
+.credential > div {
+  padding: 1rem;
+}
+
+.credential > div + div {
+  border-top: 1px solid var(--grey);
+}
+
+.credential h4 {
+  margin: 0;
+}
+
+.credential dl {
+  background-color: transparent;
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+
+.credential dl dt {
+  color: rgb(var(--primary-color));
+  font-size: 0.9rem;
+}
+
+.credential dl dd {
+  display: inline-block;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.credential dl dd div {
+  display: flex;
+  padding: 0.4rem 0.6rem;
+  background: #d0f0c0;
+  border: 1px solid #a8e4a0;
+  border-radius: var(--border-radius);
+}
+
+.credential dl dd div > .icon {
+  content: ' ';
+  display: inline-block;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-right: .4rem;
+  background-image: url('/assets/check-fill.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.credential dl dd:last-child {
+  margin-bottom: 0.4rem;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+}
+
+.footer > .text {
+  color: var(--dark-grey);
+  font-size: 0.9rem;
+}
+
+.footer > .logo {
+  height: 1.5rem;
+  width: 100%;
+  background-image: var(--logo);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+.notification {
+  display: inline-block;
+  background: #fef7ea;
+  border: 1px solid #fadeaf;
+  color: var(--dark-grey);
+  border-radius: var(--border-radius);
+  padding: 0 1rem;
+}
+
+.notification.error {
+  background-color: #ffcbcb;
+  border: 1px solid #fc7676;
+}

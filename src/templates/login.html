@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+  <p class="notification">{{ translations.login_necessary }}</p>
+  <p>
+    <a target="_blank" rel="noopener noreferer" class="button primary" href="{{ login_url }}">{{ translations.login }}</a>
+  </p>
+</div>
+{% endblock content %}

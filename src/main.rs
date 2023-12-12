@@ -1,12 +1,15 @@
+#[macro_use]
+extern crate lazy_static;
+
 use std::convert::Infallible;
 
+use auth::Authorized;
+use config::Config;
+use error::Error;
 use rocket::{
-    get,
-    http::Status,
-    post,
+    get, post,
     response::{
-        content::{RawHtml, RawJavaScript},
-        status,
+        content::{RawCss, RawJavaScript},
         stream::{Event, EventStream},
         Redirect,
     },
@@ -18,23 +21,26 @@ use rocket::{
     },
     Shutdown, State,
 };
-use verder_helpen_comm_common::{
-    auth::{render_login, render_not_found, Authorized},
-    config::Config,
-    credentials::{get_credentials_for_host, render_credentials},
-    error::Error,
-    jwt::sign_auth_select_params,
-    session::{periodic_cleanup, Session, SessionDBConn},
-    templates::{RenderType, RenderedContent},
-    translations::Translations,
-    types::{AuthSelectParams, FromPlatformJwt, GuestToken, HostToken, StartRequest},
-    util::random_string,
-};
+use session::{Session, SessionDBConn};
+use templates::{RenderType, RenderedContent};
+use translations::Translations;
+use types::{AuthSelectParams, FromPlatformJwt, GuestToken, HostToken, StartRequest};
 use verder_helpen_proto::{ClientUrlResponse, StartRequestAuthOnly};
+
+mod auth;
+mod config;
+mod credentials;
+mod error;
+mod jwt;
+mod session;
+mod templates;
+mod translations;
+mod types;
+mod util;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
-struct AttributesReceivedEvent {
+struct AttributesUpdateEvent {
     pub attr_id: String,
 }
 
@@ -56,7 +62,7 @@ async fn init(guest_token: String, config: &State<Config>) -> Result<Redirect, E
         display_name: config.auth_during_comm_config().display_name().to_owned(),
     };
 
-    let auth_select_params = sign_auth_select_params(
+    let auth_select_params = jwt::sign_auth_select_params(
         auth_select_params,
         config.auth_during_comm_config().widget_signer(),
     )?;
@@ -65,6 +71,7 @@ async fn init(guest_token: String, config: &State<Config>) -> Result<Redirect, E
         config.auth_during_comm_config().widget_url(),
         auth_select_params
     );
+
     Ok(Redirect::to(uri))
 }
 
@@ -74,6 +81,7 @@ async fn start(
     start_request: String,
     config: &State<Config>,
     db: SessionDBConn,
+    queue: &State<Sender<AttributesUpdateEvent>>,
 ) -> Result<Json<ClientUrlResponse>, Error> {
     let guest_token = GuestToken::from_platform_jwt(
         &guest_token,
@@ -90,12 +98,12 @@ async fn start(
         ));
     }
 
-    let attr_id = random_string(64);
+    let attr_id = util::random_string(64);
     let comm_url = guest_token.redirect_url.clone();
     let attr_url = format!("{}/auth_result/{}", config.internal_url(), attr_id);
     let purpose = guest_token.purpose.clone();
     if !Session::restart_auth(guest_token.clone(), attr_id.clone(), &db).await? {
-        let session = Session::new(guest_token, attr_id);
+        let session = Session::new(guest_token, attr_id.clone());
 
         session.persist(&db).await?;
     }
@@ -107,7 +115,7 @@ async fn start(
         attr_url: Some(attr_url),
     };
 
-    let start_request = verder_helpen_comm_common::jwt::sign_start_auth_request(
+    let start_request = jwt::sign_start_auth_request(
         start_request,
         config.auth_during_comm_config().start_auth_key_id(),
         config.auth_during_comm_config().start_auth_signer(),
@@ -133,6 +141,13 @@ async fn start(
         .text()
         .await?;
 
+    // may fail when there are no subscribers
+    let res = queue.send(AttributesUpdateEvent { attr_id });
+    match res {
+        Ok(_) => println!("Update sent"),
+        Err(_) => println!("Err, no update sent"),
+    }
+
     let client_url_response = serde_json::from_str::<ClientUrlResponse>(&client_url_response)?;
     Ok(Json(client_url_response))
 }
@@ -143,7 +158,7 @@ async fn auth_result(
     auth_result: String,
     config: &State<Config>,
     db: SessionDBConn,
-    queue: &State<Sender<AttributesReceivedEvent>>,
+    queue: &State<Sender<AttributesUpdateEvent>>,
 ) -> Result<(), Error> {
     verder_helpen_jwt::decrypt_and_verify_auth_result(
         &auth_result,
@@ -153,7 +168,7 @@ async fn auth_result(
     let response = Session::register_auth_result(attr_id.clone(), auth_result, &db).await;
 
     // may fail when there are no subscribers
-    let _ = queue.send(AttributesReceivedEvent { attr_id });
+    let _ = queue.send(AttributesUpdateEvent { attr_id });
 
     response
 }
@@ -171,25 +186,25 @@ impl<'r> rocket::request::FromRequest<'r> for MyRocket<'r> {
     }
 }
 
-#[get("/live/session_info/<host_token>")]
-async fn live_session_info<'a>(
-    queue: &State<Sender<AttributesReceivedEvent>>,
+#[get("/live/<token>")]
+async fn session_info<'a>(
+    queue: &State<Sender<AttributesUpdateEvent>>,
     mut end: Shutdown,
-    host_token: String,
-    config: &State<Config>,
+    token: String,
+    config: &'a State<Config>,
     authorized: Authorized,
     rocket: MyRocket<'a>,
 ) -> EventStream![Event + 'a] {
     let mut rx = queue.subscribe();
 
-    let host_token = HostToken::from_platform_jwt(
-        &host_token,
-        config.auth_during_comm_config().host_verifier(),
-    );
-
     EventStream! {
-        if let Ok(host_token) = host_token {
-            if authorized.into() {
+        if authorized.into() {
+            let host_token = HostToken::from_platform_jwt(
+                &token,
+                config.auth_during_comm_config().host_verifier(),
+            );
+
+            if let Ok(host_token) = host_token {
                 yield Event::data("start");
 
                 loop {
@@ -200,6 +215,7 @@ async fn live_session_info<'a>(
                                     Some(db) => db,
                                     None => break,
                                 };
+
                                 // fetch all attribute ids related to the provided host token
                                 if let Ok(sessions) = Session::find_by_room_id(
                                     host_token.room_id.clone(),
@@ -222,58 +238,58 @@ async fn live_session_info<'a>(
                     };
                 }
             }
+            yield Event::data("badrequest");
         }
 
         yield Event::data("forbidden");
     }
 }
 
-#[get("/session_info/<host_token>")]
-async fn session_info(
-    host_token: String,
+#[get("/clean_db")]
+async fn clean_db(db: SessionDBConn) -> Result<(), Error> {
+    session::clean_db(&db).await
+}
+
+#[get("/<token>")]
+async fn attribute_ui(
     config: &State<Config>,
     db: SessionDBConn,
     authorized: Authorized,
     translations: Translations,
-) -> Result<status::Custom<RenderedContent>, Error> {
+    token: String,
+) -> Result<RenderedContent, Error> {
     if authorized.into() {
-        let credentials = get_credentials_for_host(host_token, config, &db)
-            .await
-            .unwrap_or_else(|_| Vec::new());
+        let host_token =
+            HostToken::from_platform_jwt(&token, config.auth_during_comm_config().host_verifier());
 
-        // return 404 when no credentials are found
-        if credentials.is_empty() {
-            return Ok(status::Custom(
-                Status::NotFound,
-                render_not_found(config, RenderType::Html, translations)?,
-            ));
+        if let Ok(token) = host_token {
+            let credentials = credentials::get_credentials_for_host(token, config, &db)
+                .await
+                .unwrap_or_else(|_| Vec::new());
+
+            return Ok(credentials::render_credentials(
+                config,
+                credentials,
+                RenderType::Html,
+                translations,
+            )
+            .unwrap());
         }
 
-        return Ok(status::Custom(
-            Status::Ok,
-            render_credentials(config, credentials, RenderType::Html, translations)?,
-        ));
+        return Err(Error::BadRequest("invalid host token"));
     }
 
-    Ok(status::Custom(
-        Status::Unauthorized,
-        render_login(config, RenderType::Html, translations)?,
-    ))
+    auth::render_login(config, RenderType::Html, translations)
 }
 
-#[get("/clean_db")]
-async fn clean_db(db: SessionDBConn) -> Result<(), Error> {
-    verder_helpen_comm_common::session::clean_db(&db).await
-}
-
-#[get("/<_token>")]
-async fn attribute_ui(_token: String) -> RawHtml<&'static str> {
-    RawHtml(include_str!("../attribute-ui/index.html"))
+#[get("/attribute.css")]
+async fn attribute_css() -> RawCss<&'static str> {
+    RawCss(include_str!("templates/attribute.css"))
 }
 
 #[get("/attribute.js")]
 async fn attribute_js() -> RawJavaScript<&'static str> {
-    RawJavaScript(include_str!("../attribute-ui/attribute.js"))
+    RawJavaScript(include_str!("templates/attribute.js"))
 }
 
 #[rocket::main]
@@ -281,12 +297,12 @@ async fn main() -> Result<(), rocket::Error> {
     #[cfg(feature = "sentry")]
     verder_helpen_sentry::SentryLogger::init();
     let mut base = rocket::build()
-        .manage(channel::<AttributesReceivedEvent>(1024).0)
+        .manage(channel::<AttributesUpdateEvent>(1024).0)
         .mount("/internal", routes![auth_result, clean_db,])
         .mount("/guest", routes![init, start,])
         .mount(
             "/host",
-            routes![live_session_info, session_info, attribute_ui, attribute_js,],
+            routes![session_info, attribute_ui, attribute_css, attribute_js,],
         )
         .attach(SessionDBConn::fairing());
 
@@ -318,12 +334,11 @@ async fn main() -> Result<(), rocket::Error> {
         .await
         .expect("Failed to fetch database connection for periodic cleanup");
     rocket::tokio::spawn(async move {
-        periodic_cleanup(&connection, None)
+        session::periodic_cleanup(&connection, None)
             .await
             .expect("Failed cleanup");
     });
 
-    // manually ignoring `unused_must_use` for Rocket version 0.5.0-rc.2
-    let _ = base.launch().await?;
+    base.launch().await?;
     Ok(())
 }

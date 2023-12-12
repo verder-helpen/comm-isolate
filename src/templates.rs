@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use lazy_static;
 use rocket::{
     response::{self, content, Responder},
     Request,
@@ -37,7 +36,6 @@ impl<'r> Responder<'r, 'static> for RenderedContent {
 pub enum RenderType {
     Json,
     Html,
-    HtmlPage,
 }
 
 // Includes template at runtime, if available, otherwise uses compile-time
@@ -72,12 +70,14 @@ lazy_static! {
     pub static ref TEMPLATES: Tera = {
         let mut tera = Tera::default();
 
+        include_template!(tera, "macros.html");
+        include_template!(tera, "attribute.js");
         include_template!(tera, "base.html");
         include_template!(tera, "credentials.html");
-        include_template!(tera, "expired.html");
         include_template!(tera, "login.html");
-        include_template!(tera, "logout.html");
-        include_template!(tera, "not_found.html");
+        include_template!(tera, "logout_form.html");
+        include_template!(tera, "none_in_room.html");
+        include_template!(tera, "footer.html");
 
         tera
     };

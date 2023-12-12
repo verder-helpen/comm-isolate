@@ -4,7 +4,6 @@ use rocket::{
 };
 use rocket_sync_db_pools::postgres;
 use serde_json::json;
-use tera;
 use thiserror::Error;
 
 use crate::jwt::JwtError;

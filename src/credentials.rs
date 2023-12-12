@@ -1,11 +1,10 @@
 use serde::Serialize;
-use serde_json;
 use tera::Context;
 
 #[cfg(feature = "session_db")]
 use crate::session::{Session, SessionDBConn};
 #[cfg(feature = "session_db")]
-use crate::types::platform_token::{FromPlatformJwt, HostToken};
+use crate::types::platform_token::HostToken;
 use crate::{
     config::Config,
     error::Error,
@@ -22,43 +21,45 @@ pub fn collect_credentials(
     let mut credentials: Vec<Credentials> = vec![];
 
     for guest_auth_result in guest_auth_results.iter() {
-        if let Some(result) = &guest_auth_result.auth_result {
-            if let Some(attributes) =
-                verder_helpen_jwt::dangerous_decrypt_auth_result_without_verifying_expiration(
-                    result,
-                    config.verifier(),
-                    config.decrypter(),
-                )?
-                .attributes
-            {
-                credentials.push(Credentials {
-                    name: guest_auth_result.name.clone(),
-                    purpose: guest_auth_result.purpose.clone(),
-                    attributes,
-                });
-            }
+        let attributes = if let Some(result) = &guest_auth_result.auth_result {
+            verder_helpen_jwt::dangerous_decrypt_auth_result_without_verifying_expiration(
+                result,
+                config.verifier(),
+                config.decrypter(),
+            )?
+            .attributes
+        } else {
+            None
         };
+
+        credentials.push(Credentials {
+            name: guest_auth_result.name.clone(),
+            purpose: guest_auth_result.purpose.clone(),
+            attributes,
+        });
     }
 
     Ok(credentials)
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct SortedCredentials {
     pub purpose: Option<String>,
     pub name: Option<String>,
-    pub attributes: Vec<(String, String)>,
+    pub attributes: Option<Vec<(String, String)>>,
 }
 
 /// sorted credentials are sorted by their name (key)
 impl From<Credentials> for SortedCredentials {
     fn from(credentials: Credentials) -> Self {
-        let mut attributes = credentials
-            .attributes
-            .into_iter()
-            .collect::<Vec<(String, String)>>();
+        let attributes = if let Some(attributes) = credentials.attributes {
+            let mut attributes = attributes.into_iter().collect::<Vec<(String, String)>>();
 
-        attributes.sort_by(|x, y| x.0.cmp(&y.0));
+            attributes.sort_by(|x, y| x.0.cmp(&y.0));
+            Some(attributes)
+        } else {
+            None
+        };
 
         SortedCredentials {
             purpose: credentials.purpose,
@@ -97,11 +98,11 @@ pub fn render_credentials(
         context.insert("logout_url", &logout_url);
     }
 
-    let content = if render_type == RenderType::HtmlPage {
-        TEMPLATES.render("base.html", &context)?
-    } else {
-        TEMPLATES.render("credentials.html", &context)?
-    };
+    if let Some(custom_css) = &config.custom_css {
+        context.insert("custom_css", &custom_css);
+    }
+
+    let content = TEMPLATES.render("credentials.html", &context)?;
 
     Ok(RenderedContent {
         content,
@@ -109,31 +110,15 @@ pub fn render_credentials(
     })
 }
 
-/// retrieve sessions for all users in a room
-/// the id of the room is provided by a host jwt
-#[cfg(feature = "session_db")]
-pub async fn get_sessions_for_host(
-    host_token: String,
-    config: &Config,
-    db: &SessionDBConn,
-) -> Result<Vec<Session>, Error> {
-    let host_token = HostToken::from_platform_jwt(
-        &host_token,
-        config.auth_during_comm_config().host_verifier(),
-    )?;
-
-    Session::find_by_room_id(host_token.room_id, db).await
-}
-
 /// retrieve authentication results for all users in a room
 /// the id of the room is provided by a host jwt
 #[cfg(feature = "session_db")]
 pub async fn get_credentials_for_host(
-    host_token: String,
+    host_token: HostToken,
     config: &Config,
     db: &SessionDBConn,
 ) -> Result<Vec<Credentials>, Error> {
-    let sessions = get_sessions_for_host(host_token, config, db).await?;
+    let sessions = Session::find_by_room_id(host_token.room_id, db).await?;
     for session in &sessions {
         session.mark_active(db).await?;
     }
@@ -146,8 +131,10 @@ pub async fn get_credentials_for_host(
             auth_result: session.auth_result,
         })
         .collect::<Vec<GuestAuthResult>>();
-
-    collect_credentials(&guest_auth_results, config)
+    println!("{:?}", &guest_auth_results);
+    let creds = collect_credentials(&guest_auth_results, config);
+    println!("{:?}", &creds);
+    creds
 }
 
 #[cfg(test)]
@@ -247,6 +234,7 @@ mod tests {
             internal_url: "https://example.com".to_string(),
             external_host_url: None,
             external_guest_url: None,
+            #[cfg(feature = "sentry")]
             sentry_dsn: None,
             default_locale: String::from("nl"),
             translations: HashMap::new(),
@@ -254,6 +242,7 @@ mod tests {
             auth_provider: None,
             verifier,
             auth_during_comm_config,
+            custom_css: None,
         };
 
         let translations = Translations {
@@ -262,43 +251,32 @@ mod tests {
                 ("title".to_string(), "Gegevens".to_string()),
                 ("age".to_string(), "Leeftijd".to_string()),
                 ("email".to_string(), "E-mailadres".to_string()),
+                ("secured_by".to_string(), "Beveiligd door".to_string()),
             ]),
             language: "nl".to_string(),
         };
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let out_result =
+        let actual =
             render_credentials(&config, credentials, RenderType::Html, translations.clone())
                 .unwrap();
-        let result: &str = "<sectionclass=\"credentials\"><h4>HenkDieter</\
-                            h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
-                            dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
-                            dd></dl></section>";
+        let expected: &str =
+            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta \
+             name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Verder \
+             Helpen</title><script src=\"attribute.js\"></script><link href=\"attribute.css\" \
+             rel=\"stylesheet\" /></head><body><main><div class=\"status\"><div \
+             class=\"credential\"><div><h4>Henk \
+             Dieter</h4></div><div><dl><dt><span>Leeftijd</span></dt><dd><div><span \
+             class=\"icon\"></span><span \
+             class=\"text\">42</span></div></dd><dt><span>E-mailadres</span></dt><dd><div><span \
+             class=\"icon\"></span><span \
+             class=\"text\">hd@example.com</span></div></dd></dl></div></div><div \
+             class=\"footer\"><span class=\"text\">Beveiligd door</span><span \
+             class=\"logo\"></span></div></div></main></body></html>";
 
         assert_eq!(
-            remove_whitespace(result),
-            remove_whitespace(out_result.content())
-        );
-
-        let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
-        let out_result = render_credentials(
-            &config,
-            credentials,
-            RenderType::HtmlPage,
-            translations.clone(),
-        )
-        .unwrap();
-        let result: &str = "<!doctypehtml><htmllang=\"en\"><head><metacharset=\"utf-8\"\
-                            ><metaname=\"viewport\"content=\"width=device-width,initial-scale=1\"\
-                            ><title>Gegevens</title></head><body><main><divclass=\"attributes\"\
-                            ><div><h4>Gegevens</h4><sectionclass=\"credentials\"><h4>HenkDieter</\
-                            h4><dl><dt><span>Leeftijd</span></dt><dd><span>42</span></\
-                            dd><dt><span>E-mailadres</span></dt><dd><span>hd@example.com</span></\
-                            dd></dl></section></div></div></main></body></html>";
-
-        assert_eq!(
-            remove_whitespace(result),
-            remove_whitespace(out_result.content())
+            remove_whitespace(expected),
+            remove_whitespace(actual.content())
         );
 
         let credentials = collect_credentials(&guest_auth_results, &config).unwrap();
@@ -308,10 +286,10 @@ mod tests {
         let result: serde_json::Value = serde_json::from_str(rendered.content()).unwrap();
         let expected = serde_json::json! {
             [{
-                "purpose":"test_purpose",
-                "name":"Henk Dieter",
-                "attributes":{"age":"42","email":"hd@example.com"}}
-            ]
+                "purpose": "test_purpose",
+                "name": "Henk Dieter",
+                "attributes": { "age":"42", "email": "hd@example.com" }
+            }]
         };
 
         assert_eq!(result, expected);

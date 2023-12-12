@@ -34,7 +34,7 @@ pub mod prelude {
     #[cfg(feature = "platform_token")]
     pub use crate::types::{FromPlatformJwt, GuestToken, HostToken};
     pub use crate::{
-        auth::{render_login, render_unauthorized, AuthProvider, Authorized, LoginUrl},
+        auth::{render_login, AuthProvider, Authorized, LoginUrl},
         config::Config,
         error::Error,
         jwt::sign_auth_select_params,

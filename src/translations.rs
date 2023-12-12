@@ -36,14 +36,14 @@ impl<'r> Translations {
         let raw_accept_language: Option<&str> = req.headers().get("accept-language").next();
 
         // parse into normalized language identifiers
-        let accept_languages = raw_accept_language
+        let accept_languages: Vec<_> = raw_accept_language
             .map(|raw_accept_language| {
                 accept_language::parse(raw_accept_language)
                     .iter()
                     .filter_map(|al| parse_language_identifier(al.as_bytes()).ok())
                     .collect()
             })
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
 
         // retrieve translations keys and parse into normalized langiage identifiers
         let keys: Vec<LanguageIdentifier> = config
